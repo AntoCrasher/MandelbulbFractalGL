@@ -16,6 +16,8 @@ const int FRAME_HEIGHT = 2000;
 
 const int PIXEL_BUFFER_SIZE = FRAME_WIDTH * FRAME_HEIGHT * 3;
 
+const bool SAVE_FRAMES = true;
+
 struct ShaderProgramSource {
     string VertexSource;
     string FragmentSource;
@@ -287,7 +289,7 @@ int main(void)
     // LOOP UNTIL THE USER CLOSES THE WINDOW
     while (!glfwWindowShouldClose(window))
     {
-        if (frame >= MAX_FRAMES)
+        if (SAVE_FRAMES && frame >= MAX_FRAMES)
             break;
 
         chrono::system_clock::time_point start_frame = chrono::system_clock::now();
@@ -300,10 +302,12 @@ int main(void)
         glClear(GL_COLOR_BUFFER_BIT);
         glDrawArrays(GL_TRIANGLES, 0, 6);
 
-        // ADD PIXELS TO FRAME BUFFEER
-        GLubyte* pixels = new GLubyte[PIXEL_BUFFER_SIZE];
-        glReadPixels(0, 0, FRAME_WIDTH, FRAME_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, pixels);
-        frame_buffer[frame] = pixels;
+        if (SAVE_FRAMES) {
+            // ADD PIXELS TO FRAME BUFFEER
+            GLubyte* pixels = new GLubyte[PIXEL_BUFFER_SIZE];
+            glReadPixels(0, 0, FRAME_WIDTH, FRAME_HEIGHT, GL_RGB, GL_UNSIGNED_BYTE, pixels);
+            frame_buffer[frame] = pixels;
+        }
 
         // SWAP FRONT AND BACK BUFFERS
         glfwSwapBuffers(window);
@@ -311,36 +315,36 @@ int main(void)
         // POLL FOR AND PROCESS EVENTS
         glfwPollEvents();
 
-
-        // UPDATE PROGRESS
-        chrono::time_point<chrono::system_clock> end_frame = chrono::system_clock::now();
-        chrono::duration<float> duration_frame = end_frame - start_frame;
+        if (SAVE_FRAMES) {
+            // UPDATE PROGRESS
+            chrono::time_point<chrono::system_clock> end_frame = chrono::system_clock::now();
+            chrono::duration<float> duration_frame = end_frame - start_frame;
         
-        cout << "RENDERED: " << frame + 1 << "/" << MAX_FRAMES << " (" << floor((float)(frame + 1.0f) / (float)MAX_FRAMES * 1000.0f) / 10.0f << "%)" << " " << sec_to_time(duration_frame.count()) << " | ETA: " << sec_to_time((float)(MAX_FRAMES - (frame + 1)) * duration_frame.count()) << endl;
+            cout << "RENDERED: " << frame + 1 << "/" << MAX_FRAMES << " (" << floor((float)(frame + 1.0f) / (float)MAX_FRAMES * 1000.0f) / 10.0f << "%)" << " " << sec_to_time(duration_frame.count()) << " | ETA: " << sec_to_time((float)(MAX_FRAMES - (frame + 1)) * duration_frame.count()) << endl;
+        }
         frame++;
     }
+    if (SAVE_FRAMES) {
+        cout << "SAVING FRAMES..." << endl;
 
-    cout << "SAVING FRAMES..." << endl;
-
-    // SAVE ALL FRAMES TO DISK
-    for (int i = start_frame; i < frame + 1; i++) {
-        chrono::system_clock::time_point start_frame = chrono::system_clock::now();
+        // SAVE ALL FRAMES TO DISK
+        for (int i = start_frame; i < frame + 1; i++) {
+            chrono::system_clock::time_point start_frame = chrono::system_clock::now();
         
-        // SAVE FRAME TO DISK
-        save_frame("./output/frame_" + to_string(i) + ".bmp", frame_buffer[i]);
+            // SAVE FRAME TO DISK
+            save_frame("./output/frame_" + to_string(i) + ".bmp", frame_buffer[i]);
 
-        // UPDATE PROGRESS
-        chrono::time_point<chrono::system_clock> end_frame = chrono::system_clock::now();
-        chrono::duration<float> duration_frame = end_frame - start_frame;
+            // UPDATE PROGRESS
+            chrono::time_point<chrono::system_clock> end_frame = chrono::system_clock::now();
+            chrono::duration<float> duration_frame = end_frame - start_frame;
 
-        cout << "SAVED: " << i + 1 << "/" << frame << " (" << floor((float)(i + 1.0f) / (float)frame * 1000.0f) / 10.0f << "%)" << " " << sec_to_time(duration_frame.count()) << "    | ETA: " << sec_to_time((float)(frame-(i + 1)) * duration_frame.count()) << endl;
+            cout << "SAVED: " << i + 1 << "/" << frame << " (" << floor((float)(i + 1.0f) / (float)frame * 1000.0f) / 10.0f << "%)" << " " << sec_to_time(duration_frame.count()) << "    | ETA: " << sec_to_time((float)(frame-(i + 1)) * duration_frame.count()) << endl;
+        }
 
+        chrono::time_point<chrono::system_clock> end_time = chrono::system_clock::now();
+        chrono::duration<float> duration = end_time - start_time;
+        cout << "Total time taken: " << sec_to_time(duration.count()) << endl;
     }
-
-    chrono::time_point<chrono::system_clock> end_time = chrono::system_clock::now();
-    chrono::duration<float> duration = end_time - start_time;
-    cout << "Total time taken: " << sec_to_time(duration.count()) << endl;
-
     // DELTE SHADER
     glDeleteProgram(shader);
 
